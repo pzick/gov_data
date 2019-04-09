@@ -1,0 +1,27 @@
+h1 {
+  color: black;
+  background-color: #CCCCCC;
+  border: 1px solid black;
+  width: 400px
+}
+
+p {
+  color: red;
+}
+
+img {
+    border: 1px solid blue;
+    width: 200px
+}
+
+tr {
+    vertical-align: top
+}
+
+td {
+    border: 1px solid black
+}
+
+table {
+    width: 1000
+}
