@@ -272,6 +272,11 @@ def draw_senate_figure(meta, vote_set):
     plt.close()
 
 
+# Set up the base URL name for House roll call vote XML files
+rollcall_url_base = 'http://clerk.house.gov/cgi-bin/vote.asp?year=2019&rollnumber='
+# Set up the base URL name for Senate roll call vote XML files
+base_url = 'https://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm?congress=116&session=1&vote=' # 00000
+
 # House vote files directory
 house_dir = 'house_votes'
 # Senate vote files directory
@@ -336,6 +341,9 @@ def insert_house_table_entry(html_text, meta, proc_item):
         draw_house_figure(meta, proc_item[0]['rollcall-vote']['vote-data'])
     html_text += '<br><a href={}/{}><img src="{}/{}"></a>\n'.format(images_dir, 'roll{}.png'.format(proc_item[1]),
                                                                     images_dir, 'roll{}.png'.format(proc_item[1]))
+    # Create the URL for the roll call page to process
+    url = '{}{}'.format(rollcall_url_base, meta['rollcall-num'])
+    html_text += '<br><a href="{}">{}</a>'.format(url, url)
     return html_text
 
 
@@ -352,6 +360,9 @@ def insert_senate_table_entry(html_text, meta, proc_item):
         draw_senate_figure(meta, proc_item[0]['roll_call_vote'])
     html_text += '<br><a href={}/{}><img src="{}/{}"></a>\n'.format(images_dir, 'vote{}.png'.format(str(proc_item[1]).zfill(5)),
                                                                     images_dir, 'vote{}.png'.format(str(proc_item[1]).zfill(5)))
+    # Create the URL for the roll call page to process
+    url = '{}{}'.format(base_url, str(meta['vote_number']).zfill(5))
+    html_text += '<br><a href="{}">{}</a>'.format(url, url)
     return html_text
 
 
