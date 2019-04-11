@@ -5,6 +5,23 @@ from matplotlib import pyplot as plt
 from datetime import datetime as dt
 
 UPDATES_ONLY = True
+year = 2019
+
+
+def wrap_text(text, max_characters):
+    if len(text) > max_characters:
+        words = text.split(' ')
+        composite = ''
+        new_len = 0
+        for word in words:
+            if new_len + len(word) + 1 < max_characters:
+                composite += ' ' + word
+                new_len += len(word) + 1
+            else:
+                composite += '\n' + word
+                new_len = len(word)
+        text = composite
+    return text
 
 
 def draw_house_figure(meta, vote_set):
@@ -148,7 +165,8 @@ def draw_senate_figure(meta, vote_set):
     size = 0.2
     title = 'Roll call {}  ({})'.format(meta['vote_number'], meta['vote_date'])
     if 'document' in meta.keys():
-        title += '\n{} -- {}'.format(meta['document']['document_name'], meta['document']['document_title'])
+        title += '\n{} -- {}'.format(meta['document']['document_name'],
+                                     wrap_text(meta['document']['document_title'], 100))
     title += '\n{} ({} required)'.format(meta['vote_question_text'], meta['majority_requirement'])
     title += '\n{}'.format(meta['vote_result'])
     fig = plt.figure(figsize=(7, 6))
@@ -272,17 +290,30 @@ def draw_senate_figure(meta, vote_set):
     plt.close()
 
 
-# Set up the base URL name for House roll call vote XML files
-rollcall_url_base = 'http://clerk.house.gov/cgi-bin/vote.asp?year=2019&rollnumber='
-# Set up the base URL name for Senate roll call vote XML files
-base_url = 'https://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm?congress=116&session=1&vote=' # 00000
+Congress_start_year = 1787
+Sessions_per_Congress = 2
 
-# House vote files directory
-house_dir = 'house_votes'
-# Senate vote files directory
-senate_dir = 'senate_votes'
+# Subtract the start of Congress year 1787 from the year of interest, divide by two for the Congress number
+congress = (year - Congress_start_year) / Sessions_per_Congress
+# If the vote year calculated ends with .5, it is the second session, otherwise it is the first session
+if congress > int(congress):
+    session = 2
+    congress = int(congress)
+else:
+    session = 1
+    congress = int(congress)
+
+# Set up the base URL name for House roll call vote XML files
+rollcall_url_base = 'http://clerk.house.gov/cgi-bin/vote.asp?year={}&rollnumber='.format(year)
+# Set up the base URL name for Senate roll call vote XML files (append vote number with zero pad of 5 digits)
+base_url = 'https://www.senate.gov/legislative/LIS/roll_call_lists/'\
+           'roll_call_vote_cfm.cfm?congress={}&session={}&vote='.format(congress, session)
+
+# Storage directory paths
+house_vote_dir = 'house_votes_{}'.format(year)
+senate_vote_dir = 'senate_votes_{}'.format(year)
 # Images directory
-images_dir = 'images'
+images_dir = 'images_{}'.format(year)
 
 # Create the images directory if it is not found
 try:
@@ -295,45 +326,56 @@ image_files = [f for f in image_files if f.endswith('.png')]
 
 # Create the House votes directory if it is not found
 try:
-    os.listdir(house_dir)
+    os.listdir(house_vote_dir)
 except FileNotFoundError:
-    os.mkdir(house_dir)
+    os.mkdir(house_vote_dir)
 # Get House votes from files
-house_votes_files = os.listdir(house_dir)
+house_votes_files = os.listdir(house_vote_dir)
 house_votes_files = [f for f in house_votes_files if f.startswith('roll') and f.endswith('.json')]
 
 # Create the Senate votes directory if it is not found
 try:
-    os.listdir(senate_dir)
+    os.listdir(senate_vote_dir)
 except FileNotFoundError:
-    os.mkdir(senate_dir)
+    os.mkdir(senate_vote_dir)
 # Get Senate votes from files
-senate_votes_files = os.listdir(senate_dir)
+senate_votes_files = os.listdir(senate_vote_dir)
 senate_votes_files = [f for f in senate_votes_files if f.startswith('vote') and f.endswith('.json')]
 
 
 house_votes = []
 for vote_file in house_votes_files:
-    with open(house_dir + '/' + vote_file, 'r') as f:
+    with open(house_vote_dir + '/' + vote_file, 'r') as f:
         house_votes.append([json.load(f), int(vote_file.replace('roll', '').replace('.json', ''))])
 house_votes = sorted(house_votes, key=lambda x: x[1], reverse=True)
 
 senate_votes = []
 for vote_file in senate_votes_files:
-    with open(senate_dir + '/' + vote_file, 'r') as f:
+    with open(senate_vote_dir + '/' + vote_file, 'r') as f:
         senate_votes.append([json.load(f), int(vote_file.replace('vote', '').replace('.json', ''))])
 senate_votes = sorted(senate_votes, key=lambda x: x[1], reverse=True)
 
 def insert_house_table_entry(html_text, meta, proc_item):
-    html_text = '<h1>Roll call vote {}</h1>\n'.format(meta['rollcall-num'])
+    html_text = '<h3>Roll call vote {}</h3>\n'.format(meta['rollcall-num'])
     html_text += '{} Congress'.format(meta['congress'])
     if 'chamber' in meta.keys():
         html_text += ' -- Chamber: {}'.format(meta['chamber'])
     elif 'committee' in meta.keys():
         html_text += ' -- Committee: {}'.format(meta['committee'])
     html_text += '<p>{}</p>\n'.format(meta['action-date'])
+    doc_page = ''
     if 'legis-num' in meta.keys():
         html_text += '{}'.format(meta['legis-num'])
+        bill = meta['legis-num'].split(' ')
+        if len(bill) == 2 and bill[0] == 'S':
+            # Senate bill
+            doc_page = 'https://www.congress.gov/bill/{}th-congress/senate-bill/{}'.format(congress, bill[1])
+        elif len(bill) == 3 and bill[0] == 'H' and bill[1] == 'R':
+            doc_page = 'https://www.congress.gov/bill/{}th-congress/house-bill/{}'.format(congress, bill[2])
+        elif len(bill) == 3 and bill[0] == 'H' and bill[1] == 'RES':
+            doc_page = 'https://www.congress.gov/bill/{}th-congress/house-resolution/{}'.format(congress, bill[2])
+        elif len(bill) == 4 and bill[0] == 'H' and bill[1] == 'CON' and bill[2] == 'RES':
+            doc_page = 'https://www.congress.gov/bill/{}th-congress/house-resolution/{}'.format(congress, bill[3])
     html_text += ' -- {}'.format(meta['vote-question'])
     html_text += '<br><b>{}</b> : {}'.format(meta['vote-result'], meta['vote-type'])
     html_text += '\n'
@@ -343,31 +385,84 @@ def insert_house_table_entry(html_text, meta, proc_item):
                                                                     images_dir, 'roll{}.png'.format(proc_item[1]))
     # Create the URL for the roll call page to process
     url = '{}{}'.format(rollcall_url_base, meta['rollcall-num'])
-    html_text += '<br><a href="{}">{}</a>'.format(url, url)
+    html_text += '<br><a href="{}">Roll call vote details</a>'.format(url)
+    # Create link to document
+    if doc_page != '':
+        html_text += '<br><a href="{}">Document</a>'.format(doc_page)
     return html_text
 
 
 def insert_senate_table_entry(html_text, meta, proc_item):
-    html_text = '<h1>Roll call vote {}</h1>\n'.format(meta['vote_number'])
+    html_text = '<h3>Roll call vote {}</h3>\n'.format(meta['vote_number'])
     html_text += '{} Congress'.format(meta['congress'])
     html_text += '<p>{}</p>\n'.format(meta['vote_date'])
+    amend_page = ''
+    doc_page = ''
     if 'document' in meta.keys():
-        html_text += '{} -- {}'.format(meta['document']['document_name'], meta['document']['document_title'])
-    html_text += ' -- {}'.format(meta['vote_question_text'])
+        doc_name = meta['document']['document_name']
+        html_text += '{} -- {}'.format(doc_name, meta['document']['document_title'])
+        if doc_name != '':
+            # Create document link
+            doc_page = ''
+            bill = doc_name.split(' ')
+            if len(bill) == 1:
+                if bill[0].startswith('PN'):
+                    doc_page = 'https://www.congress.gov/nomination/{}th-congress/{}'.format(congress, bill[0][2:])
+            elif len(bill) == 2:
+                if bill[0] == 'S.':
+                    doc_page = 'https://www.congress.gov/bill/{}th-congress/senate-bill/{}'.format(congress, bill[1])
+                elif bill[0] == 'H.R.':
+                    doc_page = 'https://www.congress.gov/bill/{}th-congress/house-bill/{}'.format(congress, bill[1])
+                elif bill[0] == 'S.J.Res.':
+                    doc_page = 'https://www.congress.gov/bill/{}th-congress/'\
+                               'senate-joint-resolution/{}?q=%7B%22search%22%3A%5B%22sjres{}%22%5D%7D&s={}&r=1'\
+                                .format(congress, bill[1], bill[1], session)
+    if 'amendment' in meta.keys():
+        amend_number = meta['amendment']['amendment_number']
+        if amend_number != '':
+            number = amend_number.split(' ')[1]
+            amend_page = 'https://www.congress.gov/amendment/{}th-congress/senate-amendment/{}'\
+                .format(congress, number)
+            if doc_page == '':
+                bill = meta['amendment']['amendment_to_document_number'].split(' ')
+                if len(bill) == 1:
+                    if bill[0].startswith('PN'):
+                        doc_page = 'https://www.congress.gov/nomination/{}th-congress/{}'.format(congress, bill[0][2:])
+                elif len(bill) == 2:
+                    if bill[0] == 'S.':
+                        doc_page = 'https://www.congress.gov/bill/{}th-congress/senate-bill/{}'.format(congress, bill[1])
+                    elif bill[0] == 'H.R.':
+                        doc_page = 'https://www.congress.gov/bill/{}th-congress/house-bill/{}'.format(congress, bill[1])
+                    elif bill[0] == 'S.J.Res.':
+                        doc_page = 'https://www.congress.gov/bill/{}th-congress/'\
+                                   'senate-joint-resolution/{}?q=%7B%22search%22%3A%5B%22sjres{}%22%5D%7D&s={}&r=1'\
+                                    .format(congress, bill[1], bill[1], session)
+
+    html_text += '\n<br>{}'.format(meta['vote_question_text'])
     html_text += '<br><b>{}</b> : {}'.format(meta['vote_result_text'], meta['majority_requirement'])
     html_text += '\n'
     if UPDATES_ONLY is not True or 'vote{}.png'.format(str(proc_item[1]).zfill(5)) not in image_files:
         draw_senate_figure(meta, proc_item[0]['roll_call_vote'])
-    html_text += '<br><a href={}/{}><img src="{}/{}"></a>\n'.format(images_dir, 'vote{}.png'.format(str(proc_item[1]).zfill(5)),
-                                                                    images_dir, 'vote{}.png'.format(str(proc_item[1]).zfill(5)))
+    html_text += '<br><a href={}/{}><img src="{}/{}"></a>\n'\
+        .format(images_dir, 'vote{}.png'.format(str(proc_item[1]).zfill(5)),
+                images_dir, 'vote{}.png'.format(str(proc_item[1]).zfill(5)))
     # Create the URL for the roll call page to process
     url = '{}{}'.format(base_url, str(meta['vote_number']).zfill(5))
-    html_text += '<br><a href="{}">{}</a>'.format(url, url)
+    html_text += '<br><a href="{}">Roll call vote details</a>'.format(url)
+    # Create link to document
+    if amend_page != '':
+        html_text += '<br><a href="{}">Amendment</a>'.format(amend_page)
+    # Create link to document
+    if doc_page != '':
+        html_text += '<br><a href="{}">Document</a>'.format(doc_page)
     return html_text
 
 
 # Create an HTML page for the graphs
-html = '<html>\n<head>\n<title>House Votes</title>\n<link rel="stylesheet" href="style.css">\n</head>\n<body>\n'
+html = '<html>\n<head>\n<title>Congress Votes {}</title>'.format(year)
+html += '\n<link rel="stylesheet" href="style.css">\n</head>\n'
+html += '<center><h1>Congress Votes {}</h1></center>\n'.format(year)
+html += '<body><center>\n<h2>Last updated {}</h2><br>\n'.format(dt.now().strftime('%B %d, %Y'))
 html += '<table>\n<th>House of Representative</th><th>Senate</th></tr>\n'
 house_index = 0
 senate_index = 0
@@ -380,7 +475,12 @@ while (house_index < len(house_votes)) or (senate_index < len(senate_votes)):
         house_date = house_votes[house_index][0]['rollcall-vote']['vote-metadata']['action-date']
         house_date = dt.strptime(house_date, '%d-%b-%Y')
     if senate_index < len(senate_votes):
-        senate_date = senate_votes[senate_index][0]['roll_call_vote']['vote_date']
+        try:
+            senate_date = senate_votes[senate_index][0]['roll_call_vote']['vote_date']
+        except TypeError:
+            html += '</td><td>Senate file error</td><tr>\n'
+            senate_index += 1
+            continue
         s = senate_date.split(' ')
         senate_date = '{}-{}-{}'.format(s[1].strip(','), s[0][0:3], s[2].strip(','))
         senate_date = dt.strptime(senate_date, '%d-%b-%Y')
@@ -401,6 +501,6 @@ while (house_index < len(house_votes)) or (senate_index < len(senate_votes)):
     html += '</td>\n'
     html += '</tr>\n'
 html += '</table>\n'
-html += '</body>\n</html>'
-with open('./house_votes.html', 'wt') as f:
+html += '</center></body>\n</html>'
+with open('./congress_votes_{}.html'.format(year), 'wt') as f:
     f.write(html)

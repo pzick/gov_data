@@ -2,19 +2,36 @@
 
 from xml2json import Xml2json
 import os
+from time import sleep
+
 
 def debug_print(to_print):
     if DEBUG_PRINT is True:
         print(to_print)
+
 
 # Flag to control either only processing missing files (True), or reprocessing all files (False)
 UPDATES_ONLY = True
 # Set DEBUG_PRINT to True to get console updates, or False to suppress them
 DEBUG_PRINT = True
 
+year = 2019
+Congress_start_year = 1787
+Sessions_per_Congress = 2
+
+# Subtract the start of Congress year 1787 from the year of interest, divide by two for the Congress number
+congress = (year - Congress_start_year) / Sessions_per_Congress
+# If the vote year calculated ends with .5, it is the second session, otherwise it is the first session
+if congress > int(congress):
+    session = 2
+    congress = int(congress)
+else:
+    session = 1
+    congress = int(congress)
+
 # Storage directory paths
-house_vote_dir = 'house_votes'
-senate_vote_dir = 'senate_votes'
+house_vote_dir = 'house_votes_{}'.format(year)
+senate_vote_dir = 'senate_votes_{}'.format(year)
 
 # Get a list of files already processed/saved for House votes
 try:
@@ -24,7 +41,7 @@ except FileNotFoundError:
     processed_list = os.listdir(house_vote_dir)
 
 # Set up the base URL name for House roll call vote XML files
-rollcall_url_base = 'http://clerk.house.gov/cgi-bin/vote.asp?year=2019&rollnumber='
+rollcall_url_base = 'http://clerk.house.gov/cgi-bin/vote.asp?year={}&rollnumber='.format(year)
 
 # Process all House roll call vote pages from 1 to 2000
 for vote_number in range(1, 2001):
@@ -56,8 +73,9 @@ try:
 except FileNotFoundError:
     os.mkdir(senate_vote_dir)
     processed_list = os.listdir(senate_vote_dir)
-# Set up the base URL name for Senate roll call vote XML files
-base_url = 'https://www.senate.gov/legislative/LIS/roll_call_votes/vote1161/vote_116_1_' # 00000.xml
+# Set up the base URL name for Senate roll call vote XML files (append vote number and .xml with zero pad of 5 digits)
+base_url = 'https://www.senate.gov/legislative/LIS/roll_call_votes/vote{}{}/vote_{}_{}_'.format(congress, session,
+                                                                                                congress, session)
 
 # Process all Senate roll call vote pages from 1 to 2000
 for vote_page in range(1, 2001):
@@ -86,3 +104,5 @@ for vote_page in range(1, 2001):
         break
     filename = '{}/{}'.format(senate_vote_dir, out_filename)
     Xml2json().saveToJsonFile(out, filename)
+    # Delay between senate.gov access attempts, one second
+    sleep(1)
