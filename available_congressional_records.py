@@ -26,12 +26,12 @@ html_text += '<head><title>Congressional Records {}</title></head>\n'.format(yea
 html_text += '<body>\n'
 
 for month in range(1, 13):
-    if month > today.month:
+    if year == today.year and month > today.month:
         break
     month_name = calendar.month_name[month]
     html_text += '<h2>{} {}</h2>\n'.format(month_name, year)
     for day in range(1, 32):
-        if month == today.month and day > today.day:
+        if year == today.year and month == today.month and day > today.day:
             break
         try:
             day_name = calendar.day_name[calendar.weekday(year, month, day)]
