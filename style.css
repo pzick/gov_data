@@ -1,3 +1,7 @@
+body {
+    background-color: #555555
+}
+
 h1 {
   color: black;
   background-color: white
@@ -25,8 +29,18 @@ tr {
     vertical-align: top
 }
 
+th {
+    background-color: black;
+    color: white
+}
+
 td {
-    border: 1px solid black
+    border: 1px solid black;
+    background-color: white
+}
+
+td.procedural {
+    background-color: #CCCCCC
 }
 
 table {
@@ -36,4 +50,21 @@ table {
 
 th {
     width: 50%
+}
+
+font.question {
+    font-style: italic;
+    background-color: #FFFFCC
+}
+
+font.result_Passed {
+    background-color: #55FF55
+}
+
+font.result_Failed {
+    background-color: #FF5555
+}
+
+font.result_Agreed_to {
+    background-color: #55FF55
 }

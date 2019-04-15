@@ -65,8 +65,14 @@ class Xml2json:
             # If the return code was not 200, something is not right, return a None object
             print('Status: {}'.format(r.status_code))
             return None
+        data = r.text
+        # Compensate for sloppy format...
+        if data[0] != '<':
+            start = data.find('<')
+            if start >= 0:
+                data = data[start:]
         # Use Beautiful Soup 4 to process the XML file into tags in a structure to parse and repackage
-        soup = BeautifulSoup(r.text, 'xml')
+        soup = BeautifulSoup(data, 'xml')
         # Set the return value (store) to an empty dictionary
         store = {}
         for child in soup:
