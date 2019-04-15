@@ -32,24 +32,33 @@ class CollectCongressBills:
             os.mkdir(self.congress_bills_dir)
             self.collected_congress_bills = os.listdir(self.congress_bills_dir)
 
-        self.bill_type = {'house_bills': {'url_base': 'https://www.congress.gov/bill/{}th-congress/house-bill/{}',
-                                          'filename_base': 'House_bills_',
-                                          'page_title': 'House Bills'},
-                          'house_resolutions': {'url_base': 'https://www.congress.gov/bill/{}th-congress/house-resolution/{}',
-                                                'filename_base': 'House_resolutions_',
-                                                'page_title': 'House Resolutions'},
-                          'senate_bills': {'url_base': 'https://www.congress.gov/bill/{}th-congress/senate-bill/{}',
-                                           'filename_base': 'Senate_bills_',
-                                           'page_title': 'Senate Bills'},
-                          'senate_resolutions': {'url_base': 'https://www.congress.gov/bill/{}th-congress/senate-resolution/{}',
-                                                 'filename_base': 'Senate_resolutions_',
-                                                 'page_title': 'Senate Resolutions'},
-                          'nominations': {'url_base': 'https://www.congress.gov/nomination/{}th-congress/{}',
-                                          'filename_base': 'Nominations_',
-                                          'page_title': 'Nominations'}
+        self.bill_type = {'house_bills': {
+                                'url_base': 'https://www.congress.gov/bill/{}th-congress/house-bill/{}',
+                                'filename_base': 'House_bills_',
+                                'page_title': 'House Bills'},
+                          'house_resolutions': {
+                              'url_base': 'https://www.congress.gov/bill/{}th-congress/house-resolution/{}',
+                              'filename_base': 'House_resolutions_',
+                              'page_title': 'House Resolutions'},
+                          'house_joint_resolutions': {
+                              'url_base': 'https://www.congress.gov/bill/{}th-congress/house-joint-resolution/{}',
+                              'filename_base': 'House_joint_resolutions_',
+                              'page_title': 'House Joint Resolutions'},
+                          'senate_bills': {
+                              'url_base': 'https://www.congress.gov/bill/{}th-congress/senate-bill/{}',
+                              'filename_base': 'Senate_bills_',
+                              'page_title': 'Senate Bills'},
+                          'senate_resolutions': {
+                              'url_base': 'https://www.congress.gov/bill/{}th-congress/senate-resolution/{}',
+                              'filename_base': 'Senate_resolutions_',
+                              'page_title': 'Senate Resolutions'},
+                          'nominations': {
+                              'url_base': 'https://www.congress.gov/nomination/{}th-congress/{}',
+                              'filename_base': 'Nominations_',
+                              'page_title': 'Nominations'}
                           }
 
-    def collect_bills(self, bill_type, new_only=False):
+    def collect_bills(self, bill_type, new_only=False, limit=None):
         if new_only is False or '{}{}.json'.format(self.bill_type[bill_type]['filename_base'], self.year)\
                 not in self.collected_congress_bills:
             collected_bills = {'bill_data': {'last_bill': 0, 'bill': []}}
@@ -62,8 +71,10 @@ class CollectCongressBills:
             start_number = collected_bills['bill_data']['last_bill'] + 1
 
         # Collect the bills from congress.gov
-        max_bill_number = 100000
-        # max_bill_number = 50
+        if limit is None:
+            max_bill_number = 100000
+        else:
+            max_bill_number = limit
         for number in range(start_number, max_bill_number):
             url = self.bill_type[bill_type]['url_base'].format(self.congress, number)
             self.debug_print('Trying: {}'.format(url))
@@ -74,7 +85,8 @@ class CollectCongressBills:
                 tracker_start = r.text.find('<p class="hide_fromsighted">')
                 bill = {'title': r.text[title_start:title_end],
                         'url': url + '/text',
-                        'number': number}
+                        'number': number,
+                        'cosponsors': url + '/cosponsors'}
                 if tracker_start >= 0:
                     tracker_start += len('<p class="hide_fromsighted">')
                     tracker_end = r.text[tracker_start:].find('</p>')
@@ -82,7 +94,7 @@ class CollectCongressBills:
                     # Check for Sponsor
                     sponsor_start = r.text.find('Sponsor:')
                     if sponsor_start >= 0:
-                        sponsor_at = re.search('<td><a\W.*>(.*?)</a>(.*?)</td>', r.text[sponsor_start:])
+                        sponsor_at = re.search(r'<td><a\W.*>(.*?)</a>(.*?)</td>', r.text[sponsor_start:])
                         if sponsor_at is not None:
                             sponsor = sponsor_at.group(1)
                             sponsor_intro = sponsor_at.group(2)
@@ -116,6 +128,14 @@ class CollectCongressBills:
                         if action is not None:
                             bill['latest_action'] = action.group(1)
                             bill['all_actions_url'] = action.group(2)
+                    policy_start = r.text.find('Policy Area:<')
+                    if policy_start >= 0:
+                        policy = re.search(r'<li>(.*?)</li>', r.text[policy_start:])
+                        if policy is not None:
+                            bill['policy_area'] = policy.group(1)
+                            subjects = re.search(r'<li><a\W.*?href="(.*?)">', r.text[policy_start:])
+                            if subjects is not None:
+                                bill['subjects'] = 'https://www.congress.gov' + subjects.group(1)
                 else:
                     bill['reserved'] = True
                 collected_bills['bill_data']['last_bill'] = number
@@ -125,7 +145,7 @@ class CollectCongressBills:
                 break
         self.update_html(bill_type, collected_bills)
 
-    def collect_nominations(self, bill_type, new_only=False):
+    def collect_nominations(self, bill_type, new_only=False, limit=None):
         if new_only is False or '{}{}.json'.format(self.bill_type[bill_type]['filename_base'], self.year)\
                 not in self.collected_congress_bills:
             collected_bills = {'bill_data': {'last_bill': 0, 'bill': []}}
@@ -138,8 +158,10 @@ class CollectCongressBills:
             start_number = collected_bills['bill_data']['last_bill'] + 1
 
         # Collect the bills from congress.gov
-        max_bill_number = 100000
-        # max_bill_number = 50
+        if limit is None:
+            max_bill_number = 100000
+        else:
+            max_bill_number = limit
         for number in range(start_number, max_bill_number):
             url = self.bill_type[bill_type]['url_base'].format(self.congress, number)
             self.debug_print('Trying: {}'.format(url))
@@ -233,6 +255,13 @@ class CollectCongressBills:
             if 'all_actions_url' in bill.keys():
                 html += '<li><a href="https://www.congress.gov/{}">All actions</a></li>\n'\
                     .format(bill['all_actions_url'])
+            if 'cosponsors' in bill.keys():
+                html += '<li><a href="{}">Cosponsors</a></li>\n'.format(bill['cosponsors'])
+            if 'policy_area' in bill.keys():
+                if 'subjects' in bill.keys():
+                    html += '<li>Policy Area: <a href="{}">{}</a></li>\n'.format(bill['subjects'], bill['policy_area'])
+                else:
+                    html += '<li>Policy Area: {}</li>\n'.format(bill['policy_area'])
             if 'reserved' in bill.keys():
                 html += '<li>Reserved</li>\n'
             html += '<br>\n'
@@ -255,8 +284,8 @@ class CollectCongressBills:
 
 if __name__ == '__main__':
     collect = CollectCongressBills(2019, True, True)
-    collect.collect_bills('house_bills', True)
-    collect.collect_bills('senate_bills', True)
-    collect.collect_bills('house_resolutions', True)
-    collect.collect_bills('senate_resolutions', True)
-    collect.collect_nominations('nominations', True)
+    collect.collect_bills('house_bills', False, 50)
+    collect.collect_bills('senate_bills', False, 50)
+    collect.collect_bills('house_resolutions', True, 50)
+    collect.collect_bills('senate_resolutions', True, 50)
+    collect.collect_nominations('nominations', True, 50)

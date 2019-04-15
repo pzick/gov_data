@@ -358,8 +358,11 @@ class ProcessCongressVotes:
                     dpi=70*figsize, bbox_inches="tight", pad_inches=.02)
         plt.close()
 
-    def insert_house_table_entry(self, meta, proc_item):
-        html_text = '<h3>Roll call vote {}</h3>\n'.format(meta['rollcall-num'])
+    def insert_house_table_entry(self, meta, proc_item, procedural):
+        if procedural is False:
+            html_text = '<h3>Roll call vote {}</h3>\n'.format(meta['rollcall-num'])
+        else:
+            html_text = '<h3>Roll call vote {}  (<i>Procedural</i>)</h3>\n'.format(meta['rollcall-num'])
         html_text += '{} Congress'.format(meta['congress'])
         if 'chamber' in meta.keys():
             html_text += ' -- Chamber: {}'.format(meta['chamber'])
@@ -382,6 +385,9 @@ class ProcessCongressVotes:
                     .format(self.congress, bill[2])
             elif len(bill) == 4 and bill[0] == 'H' and bill[1] == 'CON' and bill[2] == 'RES':
                 doc_page = 'https://www.congress.gov/bill/{}th-congress/house-resolution/{}/text'\
+                    .format(self.congress, bill[3])
+            elif len(bill) == 4 and bill[0] == 'H' and bill[1] == 'J' and bill[2] == 'RES':
+                doc_page = 'https://www.congress.gov/bill/{}th-congress/house-joint-resolution/{}/text'\
                     .format(self.congress, bill[3])
             elif len(bill) == 4 and bill[0] == 'S' and bill[1] == 'J' and bill[2] == 'RES':
                 doc_page = 'https://www.congress.gov/bill/{}th-congress/senate-joint-resolution/{}/text'\
@@ -408,8 +414,11 @@ class ProcessCongressVotes:
         return html_text
 
 
-    def insert_senate_table_entry(self, meta, proc_item):
-        html_text = '<h3>Roll call vote {}</h3>\n'.format(meta['vote_number'])
+    def insert_senate_table_entry(self, meta, proc_item, procedural):
+        if procedural is False:
+            html_text = '<h3>Roll call vote {}</h3>\n'.format(meta['vote_number'])
+        else:
+            html_text = '<h3>Roll call vote {}  (<i>Procedural</i>)</h3>\n'.format(meta['vote_number'])
         html_text += '{} Congress'.format(meta['congress'])
         html_text += '<p>{}</p>\n'.format(meta['vote_date'])
         amend_page = ''
@@ -516,15 +525,23 @@ class ProcessCongressVotes:
             if house_index < len(self.house_votes) and house:
                 vote_meta = self.house_votes[house_index][0]['rollcall-vote']['vote-metadata']
                 if vote_meta['vote-question'] in ['On Ordering the Previous Question',
+                                                  'On Motion to Table',
                                                   'On Motion to Recommit with Instructions',
                                                   'On Motion to Commit with Instructions',
                                                   'On Motion to Table the Motion to Refer',
+                                                  'On Motion to Fix the Convening Time',
                                                   'Call by States',
-                                                  'Election of the Speaker']:
+                                                  'Election of the Speaker',
+                                                  'On Ordering a Call of the House',
+                                                  'Call of the House',
+                                                  'Table Appeal of the Ruling of the Chair',
+                                                  'On Approving the Journal']:
                     html += '<td class="procedural">'
+                    procedural = True
                 else:
                     html += '<td>'
-                html += self.insert_house_table_entry(vote_meta, self.house_votes[house_index])
+                    procedural = False
+                html += self.insert_house_table_entry(vote_meta, self.house_votes[house_index], procedural)
                 house_index += 1
             else:
                 html += '<td>'
@@ -537,9 +554,11 @@ class ProcessCongressVotes:
                         or vote_meta['vote_question_text'].startswith('On the Motion to Proceed')\
                         or vote_meta['vote_question_text'].startswith('On the Motion to Table'):
                     html += '<td class="procedural">'
+                    procedural = True
                 else:
                     html += '<td>'
-                html += self.insert_senate_table_entry(vote_meta, self.senate_votes[senate_index])
+                    procedural = False
+                html += self.insert_senate_table_entry(vote_meta, self.senate_votes[senate_index], procedural)
                 senate_index += 1
             else:
                 html += '<td>'
