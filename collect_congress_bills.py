@@ -284,8 +284,8 @@ class CollectCongressBills:
 
 if __name__ == '__main__':
     collect = CollectCongressBills(2019, True, True)
-    collect.collect_bills('house_bills', False, 50)
-    collect.collect_bills('senate_bills', False, 50)
-    collect.collect_bills('house_resolutions', True, 50)
-    collect.collect_bills('senate_resolutions', True, 50)
-    collect.collect_nominations('nominations', True, 50)
+    collect.collect_bills('house_bills', True, None)
+    collect.collect_bills('senate_bills', True, None)
+    collect.collect_bills('house_resolutions', True, None)
+    collect.collect_bills('senate_resolutions', True, None)
+    collect.collect_nominations('nominations', True, None)
