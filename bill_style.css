@@ -17,8 +17,12 @@ font.became_law {
     background-color: #55FF55
 }
 
+font.vetoed {
+    background-color: #FF5555
+}
+
 font.agreed {
-    background-color: #55FF55
+    background-color: #FFFF55
 }
 
 font.confirmed {

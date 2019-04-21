@@ -52,6 +52,10 @@ class CollectCongressBills:
                               'url_base': 'https://www.congress.gov/bill/{}th-congress/senate-resolution/{}',
                               'filename_base': 'Senate_resolutions_',
                               'page_title': 'Senate Resolutions'},
+                          'senate_joint_resolutions': {
+                              'url_base': 'https://www.congress.gov/bill/{}th-congress/senate-joint-resolution/{}',
+                              'filename_base': 'Senate_joint_resolutions_',
+                              'page_title': 'Senate Joint Resolutions'},
                           'nominations': {
                               'url_base': 'https://www.congress.gov/nomination/{}th-congress/{}',
                               'filename_base': 'Nominations_',
@@ -226,6 +230,10 @@ class CollectCongressBills:
                     html += '<li><font class="passed"><b>{}</b></font></li>\n'.format(bill['status'])
                 elif bill['status'].find('Became Law') >= 0:
                     html += '<li><font class="became_law"><b>{}</b></font></li>\n'.format(bill['status'])
+                elif bill['status'].find('Vetoed') >= 0:
+                    html += '<li><font class="vetoed"><b>{}</b></font></li>\n'.format(bill['status'])
+                elif bill['status'].find('Failed to pass over veto') >= 0:
+                    html += '<li><font class="vetoed"><b>{}</b></font></li>\n'.format(bill['status'])
                 elif bill['status'].find('Agreed to') >= 0:
                     html += '<li><font class="agreed"><b>{}</b></font></li>\n'.format(bill['status'])
                 else:
@@ -288,4 +296,6 @@ if __name__ == '__main__':
     collect.collect_bills('senate_bills', True, None)
     collect.collect_bills('house_resolutions', True, None)
     collect.collect_bills('senate_resolutions', True, None)
+    collect.collect_bills('house_joint_resolutions', True, None)
+    collect.collect_bills('senate_joint_resolutions', True, None)
     collect.collect_nominations('nominations', True, None)
