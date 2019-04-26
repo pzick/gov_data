@@ -1,9 +1,9 @@
 font.Republican {
-    background-color: #FFDDDD
+    background-color: #FFCCCC
 }
 
 font.Democratic {
-    background-color: #DDDDFF
+    background-color: #CCCCFF
 }
 
 font.bill_title {
@@ -27,4 +27,21 @@ font.agreed {
 
 font.confirmed {
     background-color: #55FF55
+}
+
+font.withdrawn {
+    background-color: #FF5555
+}
+
+table.item_table {
+    border: 1px solid black;
+    background-color: #CCCCCC
+}
+
+div.odd {
+    background-color: #EEEEFF
+}
+
+div.even {
+    background-color: white
 }
