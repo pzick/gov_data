@@ -27,8 +27,8 @@ class CollectCongressVotes:
             self.congress = int(self.congress)
 
         # Storage directory paths
-        self.house_vote_dir = 'house_votes_{}'.format(self.year)
-        self.senate_vote_dir = 'senate_votes_{}'.format(self.year)
+        self.house_vote_dir = 'data/house_votes_{}'.format(self.year)
+        self.senate_vote_dir = 'data/senate_votes_{}'.format(self.year)
 
         # Get a list of files already processed/saved for House votes
         try:

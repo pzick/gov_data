@@ -46,10 +46,10 @@ class ProcessCongressVotes:
                         'roll_call_vote_cfm.cfm?congress={}&session={}&vote='.format(self.congress, self.session)
 
         # Storage directory paths
-        self.house_vote_dir = 'house_votes_{}'.format(self.year)
-        self.senate_vote_dir = 'senate_votes_{}'.format(self.year)
+        self.house_vote_dir = 'data/house_votes_{}'.format(self.year)
+        self.senate_vote_dir = 'data/senate_votes_{}'.format(self.year)
         # Images directory
-        self.images_dir = 'images_{}'.format(self.year)
+        self.images_dir = 'data/images_{}'.format(self.year)
 
         # Create the images directory if it is not found
         try:
@@ -403,8 +403,10 @@ class ProcessCongressVotes:
         html_text += '\n'
         if self.UPDATES_ONLY is not True or 'roll{}.png'.format(proc_item[1]) not in self.image_files:
             self.draw_house_figure(meta, proc_item[0]['rollcall-vote']['vote-data'])
-        html_text += '<br><a href={}/{}><img src="{}/{}"></a>\n'.format(self.images_dir, 'roll{}.png'.format(proc_item[1]),
-                                                                        self.images_dir, 'roll{}.png'.format(proc_item[1]))
+        html_text += '<br><a href="../{}/{}"><img src="../{}/{}"></a>\n'.format(self.images_dir,
+                                                                                'roll{}.png'.format(proc_item[1]),
+                                                                                self.images_dir,
+                                                                                'roll{}.png'.format(proc_item[1]))
         # Create the URL for the roll call page to process
         url = '{}{}.xml'.format(self.rollcall_url_base, meta['rollcall-num'])
         html_text += '<br><a href="{}">Roll call vote details</a>'.format(url)
@@ -478,7 +480,7 @@ class ProcessCongressVotes:
         html_text += '\n'
         if self.UPDATES_ONLY is not True or 'vote{}.png'.format(str(proc_item[1]).zfill(5)) not in self.image_files:
             self.draw_senate_figure(meta, proc_item[0]['roll_call_vote'])
-        html_text += '<br><a href={}/{}><img src="{}/{}"></a>\n'\
+        html_text += '<br><a href="../{}/{}"><img src="../{}/{}"></a>\n'\
             .format(self.images_dir, 'vote{}.png'.format(str(proc_item[1]).zfill(5)),
                     self.images_dir, 'vote{}.png'.format(str(proc_item[1]).zfill(5)))
         # Create the URL for the roll call page to process
@@ -495,7 +497,7 @@ class ProcessCongressVotes:
     def process_votes(self):
         # Create an HTML page for the graphs
         html = '<html>\n<head>\n<title>Congress Votes {}</title>'.format(self.year)
-        html += '\n<link rel="stylesheet" href="style.css">\n</head>\n'
+        html += '\n<link rel="stylesheet" href="../style.css">\n</head>\n'
         html += '<center><h1>Congress Votes {}</h1></center>\n'.format(self.year)
         html += '<body><center>\n<h2>Last updated {}</h2><br>\n'.format(dt.now().strftime('%B %d, %Y'))
         html += '<table>\n<th>House of Representative</th><th>Senate</th></tr>\n'
@@ -566,7 +568,7 @@ class ProcessCongressVotes:
             html += '</tr>\n'
         html += '</table>\n'
         html += '</center></body>\n</html>'
-        with open('./congress_votes_{}.html'.format(self.year), 'wt') as f:
+        with open('html/congress_votes_{}.html'.format(self.year), 'wt') as f:
             f.write(html)
 
 
